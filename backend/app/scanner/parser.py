@@ -58,24 +58,26 @@ def parse_configuration(raw_content: str, filename: str = "") -> Dict[str, Any]:
 
 def detect_network_function_type(data: Dict[str, Any], filename: str = "") -> str:
     """
-    Heuristically identifies which 5G Network Function (AMF, SMF, UPF, etc.)
+    Heuristically identifies which 5G Network Function (AMF, SMF, UPF, PCF, etc.)
     the configuration represents based on filename and top-level key signatures.
     """
     fname = filename.lower()
     
     # Filename matching
-    for nf in ["amf", "smf", "upf", "nrf", "ausf", "udm"]:
+    for nf in ["amf", "smf", "upf", "nrf", "ausf", "udm", "pcf"]:
         if nf in fname:
             return nf.upper()
 
     # Dictionary key heuristics
     keys_str = " ".join([str(k).lower() for k in data.keys()])
+    if "pcf" in keys_str:
+        return "PCF"
     if "amf" in keys_str or "guami" in keys_str or "tai" in keys_str:
         return "AMF"
-    if "smf" in keys_str or "dnn" in keys_str or "upf" in keys_str:
-        return "SMF"
     if "upf" in keys_str or "gtpu" in keys_str or "pfcp" in keys_str:
         return "UPF"
+    if "smf" in keys_str or "dnn" in keys_str:
+        return "SMF"
     if "nrf" in keys_str or "discovery" in keys_str:
         return "NRF"
     if "ausf" in keys_str:

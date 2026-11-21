@@ -160,6 +160,7 @@ npm run dev
 | **Backend API Gateway** | Complete | FastAPI with CORS, health-check (`/api/health`), and modular routing. |
 | **Config Parsers** | Complete | Safe deserialization for YAML and JSON with format validation. |
 | **Security Rule Engine** | Complete (Starter) | Modular rule structure with starter rules (NEA0, plaintext SBI, 0.0.0.0 bind, mTLS). |
+| **Open5GS YAML Rules** | Partial | Native Open5GS structure analysis includes null NAS algorithms and explicit HTTP SBI client URIs. |
 | **Severity Classification** | Complete | Risk levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) and health score calculator. |
 | **SQLite Persistence** | Complete | Stores scan history, severity counts, and individual finding records. |
 | **Frontend Dashboard** | Complete | Dark cybersecurity theme (navy/cyan), file dropzone, stats breakdown, Recharts chart. |
@@ -168,16 +169,13 @@ npm run dev
 
 ---
 
-## 9. Planned Open5GS & free5GC Integration (Phase 2)
+## 9. Open5GS & free5GC Integration Status
 
-SUSignal is architected to inspect configurations extracted from real open-source 5G Core implementations:
+SUSignal can analyze uploaded native Open5GS YAML configurations using dedicated rules selected by the Open5GS configuration structure. Current Open5GS checks include null NAS integrity/ciphering algorithms and explicitly configured HTTP SBI client URIs. Open5GS v2.8 selects the client transport from each URI scheme; an `http://` URI therefore does not use TLS.
 
-1. **Open5GS Integration:**
-   - Ingesting `/etc/open5gs/*.yaml` configuration files directly from simulated testbeds.
-2. **free5GC Integration:**
-   - Ingesting free5GC Kubernetes ConfigMaps or standalone YAML dumps.
+The existing upload endpoint and analyzer response format are unchanged. Direct runtime ingestion through an Open5GS adapter and free5GC configuration support remain future work.
 
-### How the Architecture Accommodates This:
+### How the Architecture Accommodates Future Integrations:
 - The core scanner requires **no direct dependency or deployment** of Open5GS or free5GC.
 - The `backend/app/integrations/` module defines the `Base5GCoreAdapter` interface.
-- Phase 2 adapters will read platform-specific configuration formats and convert them into the standard dictionary schema consumed by `scanner/analyzer.py`.
+- Future adapters can read platform-specific configuration sources; the existing parser and analyzer continue to process uploaded configuration dictionaries.

@@ -4,7 +4,7 @@ Modular Security Rules Engine for 5G Core Network Functions.
 Each rule defines:
 - rule_id: Unique rule identifier (e.g., 5GS-AMF-001)
 - title: Short description of the misconfiguration
-- target_nf: Applicable Network Function (AMF, SMF, UPF, NRF, AUSF, UDM, or ALL)
+- target_nf: Applicable Network Function (AMF, SMF, UPF, PCF, NRF, AUSF, UDM, or ALL)
 - severity: SeverityLevel (CRITICAL, HIGH, MEDIUM, LOW)
 - category: Security domain (Encryption, Transport, Access Control, Hardening)
 - description: Detailed risk explanation
@@ -12,8 +12,11 @@ Each rule defines:
 - evaluate(config: dict) -> bool (True if misconfiguration detected)
 """
 
+import logging
 from typing import List, Dict, Any, Callable, Optional
 from .risk import SeverityLevel
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityRule:
@@ -54,8 +57,13 @@ class SecurityRule:
                     "description": self.description,
                     "remediation": self.remediation
                 }
-        except Exception:
+        except Exception as error:
             # Defensive execution: individual rule errors should not crash the entire scan
+            logger.error(
+                "Security rule %s failed during evaluation (%s)",
+                self.rule_id,
+                type(error).__name__,
+            )
             return None
         return None
 
@@ -143,9 +151,12 @@ def _rule_wildcard_bind(config: Dict[str, Any]) -> bool:
 def _rule_missing_mtls_nrf(config: Dict[str, Any]) -> bool:
     """Flag if NRF mutual TLS client validation is explicitly disabled."""
     mtls = _get_nested(config, "nrf", "client_auth", default=None)
-    if mtls is False or str(mtls).lower() in ["disabled", "none", "optional"]:
+    if mtls is False:
         return True
-    return False
+    return (
+        isinstance(mtls, str)
+        and mtls.strip().lower() in {"disabled", "false", "none", "optional"}
+    )
 
 
 # Default registry for starter rules
