@@ -1,0 +1,8 @@
+amf:
+  sbi:
+    server:
+      - address: 127.0.0.10
+        port: 7777
+  security:
+    integrity_order: [NIA0, NIA2]
+    ciphering_order: [NEA2, NEA1]

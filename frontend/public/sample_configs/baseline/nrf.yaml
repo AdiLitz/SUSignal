@@ -1,0 +1,16 @@
+nrf:
+  sbi:
+    scheme: https
+    addr: 10.10.0.3
+    port: 7777
+    tls:
+      enabled: true
+      cert: /etc/5g/certs/nrf.crt
+      key: /etc/5g/certs/nrf.key
+      min_version: "1.3"
+    oauth2:
+      enabled: true
+      strict_validation: true
+  registration:
+    allow_unauthenticated: false
+    verify_cert_identity: true

@@ -1,0 +1,22 @@
+smf:
+  sbi:
+    scheme: https
+    addr: 10.10.0.2
+    port: 7777
+    tls:
+      enabled: true
+      cert: /etc/5g/certs/smf.crt
+      key: /etc/5g/certs/smf.key
+      min_version: "1.3"
+  pfcp:
+    addr: 10.45.0.2
+  upf:
+    node_id: 10.45.0.1
+  ipsec:
+    enabled: true
+    ike_version: v2
+  oam:
+    addr: 127.0.0.1
+    port: 9091
+    tls:
+      enabled: true

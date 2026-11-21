@@ -1,0 +1,17 @@
+udm:
+  sbi:
+    scheme: https
+    addr: 10.10.0.5
+    port: 7777
+    tls:
+      enabled: true
+      cert: /etc/5g/certs/udm.crt
+      key: /etc/5g/certs/udm.key
+      min_version: "1.3"
+  suci:
+    allow_null_scheme: false
+    enforce_profile: Profile_A
+  db_uri: mongodb://udm_user:${VAULT_DB_PASSWORD}@db.core.internal:27017/open5gs?ssl=true
+  crypto:
+    key_source: hardware_security_module
+    opc_type: unique_random

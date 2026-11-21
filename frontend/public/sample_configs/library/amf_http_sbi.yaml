@@ -1,0 +1,5 @@
+amf:
+  sbi:
+    scheme: http
+    addr: 10.10.0.10
+    port: 7777

@@ -1,0 +1,184 @@
+{
+  "samples": [
+    {
+      "id": "amf-hardened",
+      "path": "amf_hardened.yaml",
+      "network_function": "AMF",
+      "category": "Secure",
+      "description": "Hardened AMF example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "ausf-baseline",
+      "path": "baseline/ausf.yaml",
+      "network_function": "AUSF",
+      "category": "Secure",
+      "description": "Baseline AUSF example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "nrf-baseline",
+      "path": "baseline/nrf.yaml",
+      "network_function": "NRF",
+      "category": "Secure",
+      "description": "Baseline NRF example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "smf-baseline",
+      "path": "baseline/smf.yaml",
+      "network_function": "SMF",
+      "category": "Secure",
+      "description": "Baseline SMF example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "udm-baseline",
+      "path": "baseline/udm.yaml",
+      "network_function": "UDM",
+      "category": "Secure",
+      "description": "Baseline UDM example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "upf-baseline",
+      "path": "baseline/upf.yaml",
+      "network_function": "UPF",
+      "category": "Secure",
+      "description": "Baseline UPF example; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "pcf-secure",
+      "path": "library/pcf_secure.yaml",
+      "network_function": "PCF",
+      "category": "Secure",
+      "description": "PCF with HTTPS and a specific service address; no issues detected by the currently implemented security rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "amf-nea0",
+      "path": "baseline/amf.yaml",
+      "network_function": "AMF",
+      "category": "Individual weakness",
+      "description": "Baseline AMF example that permits NEA0 null ciphering.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["5GS-CRYP-001"]
+    },
+    {
+      "id": "amf-nia0",
+      "path": "library/amf_nia0.yaml",
+      "network_function": "AMF",
+      "category": "Individual weakness",
+      "description": "Minimal Open5GS-shaped AMF example with NIA0 integrity protection enabled.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-AMF-001"]
+    },
+    {
+      "id": "amf-http-sbi",
+      "path": "library/amf_http_sbi.yaml",
+      "network_function": "AMF",
+      "category": "Individual weakness",
+      "description": "AMF SBI uses the explicitly configured HTTP scheme.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["5GS-SBI-002"]
+    },
+    {
+      "id": "amf-wildcard-binding",
+      "path": "library/amf_wildcard_binding.yaml",
+      "network_function": "AMF",
+      "category": "Individual weakness",
+      "description": "AMF NGAP binds to the wildcard address 0.0.0.0.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["5GS-NET-003"]
+    },
+    {
+      "id": "nrf-mtls-disabled",
+      "path": "library/nrf_mtls_disabled.yaml",
+      "network_function": "NRF",
+      "category": "Individual weakness",
+      "description": "NRF client certificate authentication is explicitly disabled.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["5GS-AUTH-004"]
+    },
+    {
+      "id": "amf-seeded-multiple",
+      "path": "seeded_vulnerable/amf.yaml",
+      "network_function": "AMF",
+      "category": "Multiple weaknesses",
+      "description": "Existing seeded AMF example combines null ciphering, HTTP SBI, and wildcard binding.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["5GS-CRYP-001", "5GS-SBI-002", "5GS-NET-003"]
+    },
+    {
+      "id": "open5gs-amf",
+      "path": "open5gs/amf.yaml",
+      "network_function": "AMF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 AMF sample; scanner findings cover NIA0, NEA0, and explicit HTTP SBI client URIs.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-AMF-001", "OPEN5GS-AMF-002", "OPEN5GS-SBI-001"]
+    },
+    {
+      "id": "open5gs-ausf",
+      "path": "open5gs/ausf.yaml",
+      "network_function": "AUSF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 AUSF sample with an explicit HTTP SBI client URI.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-SBI-001"]
+    },
+    {
+      "id": "open5gs-nrf",
+      "path": "open5gs/nrf.yaml",
+      "network_function": "NRF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 NRF sample with no finding under the currently implemented rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    },
+    {
+      "id": "open5gs-pcf",
+      "path": "open5gs/pcf.yaml",
+      "network_function": "PCF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 PCF sample with an explicit HTTP SBI client URI.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-SBI-001"]
+    },
+    {
+      "id": "open5gs-smf",
+      "path": "open5gs/smf.yaml",
+      "network_function": "SMF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 SMF sample with an explicit HTTP SBI client URI.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-SBI-001"]
+    },
+    {
+      "id": "open5gs-udm",
+      "path": "open5gs/udm.yaml",
+      "network_function": "UDM",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 UDM sample with an explicit HTTP SBI client URI.",
+      "contains_known_test_vulnerabilities": true,
+      "expected_rule_ids": ["OPEN5GS-SBI-001"]
+    },
+    {
+      "id": "open5gs-upf",
+      "path": "open5gs/upf.yaml",
+      "network_function": "UPF",
+      "category": "Real Open5GS v2.8.0",
+      "description": "Actual Open5GS v2.8.0 UPF sample with no finding under the currently implemented rules.",
+      "contains_known_test_vulnerabilities": false,
+      "expected_rule_ids": []
+    }
+  ]
+}
