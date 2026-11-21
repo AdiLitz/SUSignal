@@ -1,0 +1,10 @@
+upf:
+  pfcp:
+    addr: 0.0.0.0
+  gtpu:
+    addr: 0.0.0.0
+  subnet: 10.45.0.0/16
+  metrics:
+    addr: 0.0.0.0
+    port: 9101
+    auth_required: false

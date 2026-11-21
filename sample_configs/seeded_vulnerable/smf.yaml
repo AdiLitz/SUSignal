@@ -1,0 +1,13 @@
+smf:
+  sbi:
+    scheme: http
+    addr: 0.0.0.0
+    port: 7777
+    tls:
+      enabled: false
+  pfcp:
+    addr: 0.0.0.0
+  upf:
+    node_id: 127.0.0.7
+  ipsec:
+    enabled: false

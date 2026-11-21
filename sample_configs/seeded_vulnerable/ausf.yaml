@@ -1,0 +1,9 @@
+ausf:
+  sbi:
+    scheme: https
+    addr: 10.10.0.4
+    port: 7777
+    tls:
+      enabled: true
+      min_version: "1.0"
+  strict_snn_validation: false

@@ -1,0 +1,14 @@
+ausf:
+  sbi:
+    scheme: https
+    addr: 10.10.0.4
+    port: 7777
+    tls:
+      enabled: true
+      cert: /etc/5g/certs/ausf.crt
+      key: /etc/5g/certs/ausf.key
+      min_version: "1.3"
+  strict_snn_validation: true
+  plmn_allowlist:
+    - "00101"
+    - "99970"

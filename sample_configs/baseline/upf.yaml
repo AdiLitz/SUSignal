@@ -1,0 +1,13 @@
+upf:
+  pfcp:
+    addr: 10.45.0.1
+  gtpu:
+    addr: 192.168.100.10
+  subnet: 10.45.0.0/16
+  ipsec:
+    enabled: true
+    ike_version: v2
+  metrics:
+    addr: 10.100.1.6
+    port: 9101
+    auth_required: true
