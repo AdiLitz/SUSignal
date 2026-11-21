@@ -49,7 +49,7 @@ async def run_tests():
     assert history["count"] >= 3
 
     print("\n=======================================================")
-    print("  ALL 5G SENTINEL API & MODULE TESTS PASSED (100%)")
+    print("    ALL SUSIGNAL API & MODULE TESTS PASSED (100%)")
     print("=======================================================")
 
 

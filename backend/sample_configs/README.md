@@ -1,6 +1,6 @@
-# 5G Sentinel Sample Configurations
+# SUSignal Sample Configurations
 
-This directory provides realistic, simulated 5G Core Network Function (NF) configuration files in both YAML and JSON formats. These can be used to test the 5G Sentinel scanning engine, API upload endpoints, and web dashboard.
+This directory provides realistic, simulated 5G Core Network Function (NF) configuration files in both YAML and JSON formats. These can be used to test the SUSignal scanning engine, API upload endpoints, and web dashboard.
 
 ---
 

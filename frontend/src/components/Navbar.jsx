@@ -12,7 +12,7 @@ export default function Navbar({ backendStatus }) {
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-lg tracking-tight text-white">5G SENTINEL</span>
+              <span className="font-bold text-lg tracking-tight text-white">SUSIGNAL</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-semibold tracking-wider">
                 CORE AUDITOR
               </span>

@@ -1,8 +1,8 @@
-# 5G Sentinel – Intelligent 5G Network Security Misconfiguration Scanner
+# SUSignal – Intelligent 5G Network Security Misconfiguration Scanner
 
-5G Sentinel is an automated cybersecurity assessment tool designed to scan, detect, and remediate security misconfigurations across 5G Core Network Functions (NFs). 
+SUSignal is an automated cybersecurity assessment tool designed to scan, detect, and remediate security misconfigurations across 5G Core Network Functions (NFs). 
 
-By evaluating configuration artifacts against 3GPP security standards (such as 3GPP TS 33.501), 5G Sentinel identifies dangerous weaknesses such as null encryption, insecure Service Based Interface (SBI) transport schemes, open interface bindings, and permissive inter-NF mutual TLS policies before they can be exploited in simulated or lab deployments.
+By evaluating configuration artifacts against 3GPP security standards (such as 3GPP TS 33.501), SUSignal identifies dangerous weaknesses such as null encryption, insecure Service Based Interface (SBI) transport schemes, open interface bindings, and permissive inter-NF mutual TLS policies before they can be exploited in simulated or lab deployments.
 
 ---
 
@@ -10,7 +10,7 @@ By evaluating configuration artifacts against 3GPP security standards (such as 3
 
 Modern 5G Standalone (SA) architectures rely on distributed cloud-native Network Functions (AMF, SMF, UPF, NRF, AUSF, UDM). A single configuration oversight (e.g., exposing an unauthenticated SBI or prioritizing `NEA0` null encryption) can compromise subscriber confidentiality or allow rogue NF registration.
 
-5G Sentinel parses multi-format configuration files, evaluates them with a modular rule engine, categorizes risk into standard severity levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), logs scan history in SQLite, and provides actionable remediation guidance via a responsive cybersecurity dashboard.
+SUSignal parses multi-format configuration files, evaluates them with a modular rule engine, categorizes risk into standard severity levels (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), logs scan history in SQLite, and provides actionable remediation guidance via a responsive cybersecurity dashboard.
 
 ---
 
@@ -58,7 +58,7 @@ The architecture enforces strict decoupling between the ingestion layer, analysi
 ## 4. Directory Structure
 
 ```
-5G-Sentinel/
+SUSignal/
 ├── frontend/                     # React + Vite web dashboard
 │   ├── src/
 │   │   ├── components/           # Navbar, UploadSection, VulnerabilityStats, ScanResults
@@ -170,7 +170,7 @@ npm run dev
 
 ## 9. Planned Open5GS & free5GC Integration (Phase 2)
 
-5G Sentinel is architected to inspect configurations extracted from real open-source 5G Core implementations:
+SUSignal is architected to inspect configurations extracted from real open-source 5G Core implementations:
 
 1. **Open5GS Integration:**
    - Ingesting `/etc/open5gs/*.yaml` configuration files directly from simulated testbeds.

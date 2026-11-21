@@ -115,7 +115,7 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="border-t border-navy-800 bg-navy-950 py-6 text-center text-xs text-slate-500 font-mono">
-        <p>5G Sentinel · Cybersecurity Network Function Misconfiguration Engine</p>
+        <p>SUSignal · Cybersecurity Network Function Misconfiguration Engine</p>
       </footer>
     </div>
   );

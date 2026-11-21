@@ -106,7 +106,7 @@ def run_live_test():
             assert hist_json.get("count") >= 1
 
         print("\n=======================================================")
-        print("  FULL LIVE FASTAPI SERVER & UPLOAD VERIFICATION PASSED!")
+        print("  FULL LIVE SUSIGNAL SERVER & UPLOAD VERIFICATION PASSED!")
         print("=======================================================")
 
     finally:

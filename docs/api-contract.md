@@ -1,6 +1,6 @@
-# 5G Sentinel API Contract
+# SUSignal API Contract
 
-This document defines the formal API specifications for 5G Sentinel, governing communication between the Frontend application, Backend services, and external automated integration pipelines.
+This document defines the formal API specifications for SUSignal, governing communication between the Frontend application, Backend services, and external automated integration pipelines.
 
 ---
 
@@ -27,7 +27,7 @@ Verifies backend server readiness and sub-module status.
 ```json
 {
   "status": "healthy",
-  "service": "5G Sentinel API",
+  "service": "SUSignal API",
   "version": "0.1.0",
   "supported_formats": ["YAML", "JSON"],
   "modules": {

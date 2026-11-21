@@ -1,8 +1,8 @@
-# 5G Sentinel – Architecture & Design Specification
+# SUSignal – Architecture & Design Specification
 
 ## 1. Executive Summary
 
-**5G Sentinel** is a modular cybersecurity scanner engineered to identify security misconfigurations across 5G Core Network Functions (NFs) such as AMF, SMF, UPF, NRF, AUSF, and UDM. 
+**SUSignal** is a modular cybersecurity scanner engineered to identify security misconfigurations across 5G Core Network Functions (NFs) such as AMF, SMF, UPF, NRF, AUSF, and UDM. 
 
 The architecture is built for strict separation of concerns, allowing four developers to simultaneously build modules in parallel without code collisions or tight dependencies.
 
@@ -69,7 +69,7 @@ The architecture is built for strict separation of concerns, allowing four devel
 
 ## 4. Future Open5GS and free5GC Integration Strategy
 
-A primary long-term capability of 5G Sentinel is inspecting configurations directly from live or lab 5G Core implementations (Open5GS and free5GC).
+A primary long-term capability of SUSignal is inspecting configurations directly from live or lab 5G Core implementations (Open5GS and free5GC).
 
 ### Key Architectural Guidelines:
 1. **Zero Runtime Dependency:** The core scanner must never import Open5GS or free5GC binaries or require a live 5G Core installation to operate.

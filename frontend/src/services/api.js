@@ -1,5 +1,5 @@
 /**
- * 5G Sentinel Frontend API Service Layer
+ * SUSignal Frontend API Service Layer
  * Centralized HTTP communication for all backend interactions.
  */
 

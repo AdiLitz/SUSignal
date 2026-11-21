@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 
 # Database file location relative to backend app
 DB_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(DB_DIR, "sentinel.db")
+DB_FILE = os.path.join(DB_DIR, "susignal.db")
 
 
 def get_db_connection() -> sqlite3.Connection:

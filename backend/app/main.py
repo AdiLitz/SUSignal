@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="5G Sentinel API",
+    title="SUSignal API",
     description="Intelligent 5G Network Security Misconfiguration Scanner backend API",
     version="0.1.0",
     lifespan=lifespan
@@ -50,7 +50,7 @@ async def health_check() -> Dict[str, Any]:
     """
     return {
         "status": "healthy",
-        "service": "5G Sentinel API",
+        "service": "SUSignal API",
         "version": "0.1.0",
         "supported_formats": ["YAML", "JSON"],
         "modules": {

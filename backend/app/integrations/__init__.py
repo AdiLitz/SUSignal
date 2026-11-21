@@ -17,7 +17,7 @@ Planned pipeline workflow:
                 [Standardized Config Dict Pipeline]
                                 |
                                 v
-                      [5G Sentinel Analyzer]
+                       [SUSignal Analyzer]
 
 Current Status: Stub reserved for Phase 2 integration. No dependencies or deployments required.
 """
@@ -29,7 +29,7 @@ from abc import ABC, abstractmethod
 class Base5GCoreAdapter(ABC):
     """
     Abstract adapter interface for importing and normalizing 5G Core configuration
-    files from specific distributions (Open5GS, free5GC, etc.) into the 5G Sentinel scanner.
+    files from specific distributions (Open5GS, free5GC, etc.) into the SUSignal scanner.
     """
 
     @property
