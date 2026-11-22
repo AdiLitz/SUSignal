@@ -1,0 +1,7 @@
+amf:
+  ngap:
+    addr: 0.0.0.0
+    port: 38412
+  security:
+    integrity_order: [NIA2, NIA1]
+    ciphering_order: [NEA2, NEA1]

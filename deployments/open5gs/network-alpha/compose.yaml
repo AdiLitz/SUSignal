@@ -1,0 +1,245 @@
+name: susignal-network-alpha
+
+services:
+  certificate-init:
+    image: susignal/open5gs:2.8.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OPEN5GS_VERSION: 2.8.0~resolute6
+    command: ["/usr/local/bin/generate-certs"]
+    restart: "no"
+    mem_limit: 128m
+    volumes:
+      - alpha-ca-private:/run/susignal-alpha-ca
+      - alpha-nrf-certs:/run/susignal-alpha-nrf
+      - alpha-amf-certs:/run/susignal-alpha-amf
+      - alpha-smf-certs:/run/susignal-alpha-smf
+      - alpha-ausf-certs:/run/susignal-alpha-ausf
+      - alpha-udm-certs:/run/susignal-alpha-udm
+      - alpha-pcf-certs:/run/susignal-alpha-pcf
+      - alpha-udr-certs:/run/susignal-alpha-udr
+    networks:
+      - core
+
+  mongodb:
+    image: mongo:8.0
+    command: ["mongod", "--bind_ip_all"]
+    restart: "no"
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - alpha-mongo-data:/data/db
+    networks:
+      - core
+
+  nrf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-nrfd", "-c", "/etc/open5gs/nrf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-nrfd >/dev/null && openssl s_client -connect nrf:7777 -servername nrf -verify_hostname nrf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/nrf.yaml:/etc/open5gs/nrf.yaml:ro
+      - alpha-nrf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  udr:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-udrd", "-c", "/etc/open5gs/udr.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      nrf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-udrd >/dev/null && openssl s_client -connect udr:7777 -servername udr -verify_hostname udr -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/udr.yaml:/etc/open5gs/udr.yaml:ro
+      - alpha-udr-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  ausf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-ausfd", "-c", "/etc/open5gs/ausf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      nrf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-ausfd >/dev/null && openssl s_client -connect ausf:7777 -servername ausf -verify_hostname ausf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/ausf.yaml:/etc/open5gs/ausf.yaml:ro
+      - alpha-ausf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  udm:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-udmd", "-c", "/etc/open5gs/udm.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      nrf:
+        condition: service_healthy
+      udr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-udmd >/dev/null && openssl s_client -connect udm:7777 -servername udm -verify_hostname udm -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/udm.yaml:/etc/open5gs/udm.yaml:ro
+      - alpha-udm-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  pcf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-pcfd", "-c", "/etc/open5gs/pcf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      nrf:
+        condition: service_healthy
+      udr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-pcfd >/dev/null && openssl s_client -connect pcf:7777 -servername pcf -verify_hostname pcf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/pcf.yaml:/etc/open5gs/pcf.yaml:ro
+      - alpha-pcf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  smf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-smfd", "-c", "/etc/open5gs/smf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      nrf:
+        condition: service_healthy
+      upf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-smfd >/dev/null && openssl s_client -connect smf:7777 -servername smf -verify_hostname smf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/smf.yaml:/etc/open5gs/smf.yaml:ro
+      - alpha-smf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+  upf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-upfd", "-c", "/etc/open5gs/upf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    depends_on:
+      nrf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "open5gs-upfd"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/upf.yaml:/etc/open5gs/upf.yaml:ro
+    networks:
+      - core
+
+  amf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-amfd", "-c", "/etc/open5gs/amf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+      nrf:
+        condition: service_healthy
+      ausf:
+        condition: service_healthy
+      udm:
+        condition: service_healthy
+      smf:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-amfd >/dev/null && openssl s_client -connect amf:7777 -servername amf -verify_hostname amf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ./configs/amf.yaml:/etc/open5gs/amf.yaml:ro
+      - alpha-amf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+networks:
+  core:
+    internal: true
+
+volumes:
+  alpha-ca-private:
+  alpha-nrf-certs:
+  alpha-amf-certs:
+  alpha-smf-certs:
+  alpha-ausf-certs:
+  alpha-udm-certs:
+  alpha-pcf-certs:
+  alpha-udr-certs:
+  alpha-mongo-data:

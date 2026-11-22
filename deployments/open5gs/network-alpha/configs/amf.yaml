@@ -1,0 +1,56 @@
+logger:
+  level: info
+
+amf:
+  amf_name: amf.alpha.susignal.test
+  sbi:
+    server:
+      - address: amf
+        port: 7777
+    client:
+      nrf:
+        - uri: https://nrf:7777
+  ngap:
+    server:
+      - address: amf
+  guami:
+    - plmn_id:
+        mcc: 999
+        mnc: 70
+      amf_id:
+        region: 2
+        set: 1
+  tai:
+    - plmn_id:
+        mcc: 999
+        mnc: 70
+      tac: 1
+  plmn_support:
+    - plmn_id:
+        mcc: 999
+        mnc: 70
+      s_nssai:
+        - sst: 1
+  security:
+    integrity_order: [NIA2]
+    ciphering_order: [NEA2]
+  network_name:
+    full: SUSignal Alpha
+    short: Alpha
+  time:
+    t3512:
+      value: 540
+
+  default:
+    tls:
+      server:
+        scheme: https
+        private_key: /etc/open5gs/tls/server.key
+        cert: /etc/open5gs/tls/server.crt
+        verify_client: true
+        verify_client_cacert: /etc/open5gs/tls/ca.crt
+      client:
+        scheme: https
+        cacert: /etc/open5gs/tls/ca.crt
+        client_private_key: /etc/open5gs/tls/server.key
+        client_cert: /etc/open5gs/tls/server.crt

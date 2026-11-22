@@ -23,6 +23,10 @@
         <button class="nav-item" data-page="topology"><b>⌘</b><em>Network Topology</em></button>
       </div>
       <div class="nav-group">
+        <span>ENVIRONMENTS</span>
+        <button class="nav-item" data-page="environments"><b>◉</b><em>5G Test Environments</em></button>
+      </div>
+      <div class="nav-group">
         <span>SECURITY</span>
         <button class="nav-item" data-page="rules"><b>≡</b><em>Rule Catalog</em></button>
         <button class="nav-item" data-page="remediation"><b>✓</b><em>Remediation Center</em></button>
@@ -66,29 +70,68 @@
         </div>
         <div class="metric-grid">
           <article class="metric-card yellow">
-            <div class="metric-top"><span class="metric-icon">◷</span><small>ALL RECORDED SCANS</small></div>
+            <div class="metric-top"><span class="metric-icon">◷</span><small>CONFIGURATION HISTORY</small></div>
             <div class="metric-value"><strong id="metricTotalScans">—</strong></div>
-            <label>TOTAL SCANS</label>
-            <div class="metric-meta"><span id="scanCountMeta">Loading history</span></div>
+            <label>CONFIGURATION SCANS</label>
+            <div class="metric-meta"><span id="scanCountMeta">Loading configuration history</span></div>
           </article>
           <article class="metric-card">
-            <div class="metric-top"><span class="metric-icon">◎</span><small>HISTORICAL SCANS</small></div>
-            <div class="metric-value"><strong id="metricAverageScore">—</strong><span class="metric-unit">/ 100</span></div>
-            <label>AVERAGE SECURITY SCORE</label>
-            <div class="metric-meta"><span id="averageScoreMeta">No score data</span></div>
+            <div class="metric-top"><span class="metric-icon">◎</span><small>LATEST SCAN</small></div>
+            <div class="metric-value"><strong id="metricLatestScore">—</strong><span class="metric-unit">/ 100</span></div>
+            <label>LATEST SECURITY SCORE</label>
+            <div class="metric-meta"><span id="latestScanMeta">No completed configuration scan</span></div>
           </article>
           <article class="metric-card coral">
-            <div class="metric-top"><span class="metric-icon">△</span><small>ALL RECORDED SCANS</small></div>
-            <div class="metric-value"><strong id="metricTotalVulnerabilities">—</strong></div>
-            <label>TOTAL VULNERABILITIES</label>
-            <div class="metric-meta"><span id="vulnerabilityMeta">Finding records</span></div>
+            <div class="metric-top"><span class="metric-icon">△</span><small>LATEST SCAN</small></div>
+            <div class="metric-value"><strong id="metricLatestFindings">—</strong></div>
+            <label>FINDINGS IN LATEST SCAN</label>
+            <div class="metric-meta"><span id="latestFindingsMeta">No scan result</span></div>
           </article>
           <article class="metric-card teal">
-            <div class="metric-top"><span class="metric-icon">⌘</span><small>UNIQUE FUNCTIONS</small></div>
-            <div class="metric-value"><strong id="metricNetworkFunctions">—</strong></div>
-            <label>NETWORK FUNCTIONS ANALYSED</label>
-            <div class="metric-meta"><span id="networkFunctionMeta">No NF records</span></div>
+            <div class="metric-top"><span class="metric-icon">⌘</span><small>LATEST SCAN</small></div>
+            <div class="metric-value"><strong id="metricRulesChecked">—</strong></div>
+            <label>RULES CHECKED</label>
+            <div class="metric-meta"><span id="latestRulesMeta">No scan rule data</span></div>
           </article>
+        </div>
+        <div class="runtime-section-heading"><span>RUNTIME ENVIRONMENT METRICS</span><small>LIVE STATUS AND SAVED RUNTIME ASSESSMENTS</small></div>
+        <div class="metric-grid runtime-metric-grid">
+          <article class="metric-card teal">
+            <div class="metric-top"><span class="metric-icon">●</span><small>LIVE DOCKER STATUS</small></div>
+            <strong id="metricRunningNetworks">—</strong>
+            <label>RUNNING NETWORKS</label>
+            <div class="metric-meta"><span id="runningNetworksMeta">Awaiting backend status</span></div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-top"><span class="metric-icon">◷</span><small>PERSISTED RESULTS</small></div>
+            <strong id="metricRuntimeAssessments">—</strong>
+            <label>RUNTIME ASSESSMENTS</label>
+            <div class="metric-meta"><span id="runtimeAssessmentsMeta">No assessment data</span></div>
+          </article>
+          <article class="metric-card coral">
+            <div class="metric-top"><span class="metric-icon">△</span><small>RUNTIME ONLY</small></div>
+            <strong id="metricRuntimeFindings">—</strong>
+            <label>RUNTIME FINDINGS</label>
+            <div class="metric-meta"><span id="runtimeFindingsMeta">No runtime findings data</span></div>
+          </article>
+        </div>
+        <div class="analytics-grid runtime-analytics-grid">
+          <section class="chart-card">
+            <div class="chart-header"><div><span>06</span><h3>NETWORK STATUS DISTRIBUTION</h3></div><small>LIVE BACKEND STATUS</small></div>
+            <div class="runtime-chart" id="networkStatusChart"></div>
+          </section>
+          <section class="chart-card">
+            <div class="chart-header"><div><span>07</span><h3>RUNTIME FINDINGS BY SEVERITY</h3></div><small>SAVED ASSESSMENTS</small></div>
+            <div class="runtime-chart" id="runtimeSeverityChart"></div>
+          </section>
+          <section class="chart-card">
+            <div class="chart-header"><div><span>08</span><h3>RUNTIME FINDINGS BY NETWORK</h3></div><small>SAVED ASSESSMENTS</small></div>
+            <div class="runtime-chart" id="runtimeNetworkChart"></div>
+          </section>
+          <section class="chart-card">
+            <div class="chart-header"><div><span>09</span><h3>CONFIGURATION VS RUNTIME FINDINGS</h3></div><small>PERSISTED FINDINGS</small></div>
+            <div class="runtime-chart" id="assessmentTypeChart"></div>
+          </section>
         </div>
 
         <div class="analytics-grid">
@@ -97,7 +140,7 @@
             <div class="trend-chart" id="trendChart"></div>
           </section>
           <section class="chart-card severity-card">
-            <div class="chart-header"><div><span>02</span><h3>SEVERITY DISTRIBUTION</h3></div><div class="micro-toggle" id="severityView"><button class="active" data-severity-view="bars">BAR</button><button data-severity-view="donut">DONUT</button></div></div>
+            <div class="chart-header"><div><span>02</span><h3>LATEST SCAN FINDINGS BY SEVERITY</h3></div><div class="micro-toggle" id="severityView"><button class="active" data-severity-view="bars">BAR</button><button data-severity-view="donut">DONUT</button></div></div>
             <div class="severity-chart" id="severityChart"></div>
           </section>
           <section class="chart-card network-function-card">

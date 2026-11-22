@@ -1,9 +1,19 @@
 import {
   checkBackendHealth,
+  assessNetworkAlpha,
+  assessNetworkBeta,
   fetchDashboardStatistics,
+  fetchEnvironmentStatistics,
+  fetchNetworkAlpha,
+  fetchNetworkBeta,
   fetchRuleCatalog,
+  fetchRuntimeAssessment,
   fetchScanDetails,
   fetchScanHistory,
+  startNetworkAlpha,
+  startNetworkBeta,
+  stopNetworkAlpha,
+  stopNetworkBeta,
   updateRemediationStatus,
   uploadConfiguration
 } from "./services/api.js";
@@ -20,6 +30,15 @@ const state = {
   historyDetails: [],
   statistics: null,
   statisticsError: null,
+  environment: null,
+  betaEnvironment: null,
+  environmentError: null,
+  betaEnvironmentError: null,
+  environmentStatistics: null,
+  environmentStatisticsError: null,
+  runtimeAssessment: null,
+  betaRuntimeAssessment: null,
+  environmentBusy: false,
   rules: [],
   samples: [],
   currentScan: null,
@@ -106,17 +125,20 @@ async function loadHistory() {
     state.historyTotal = data.total;
     state.historyLoaded = true;
     const scanFilter = $("#scanFilter");
+    const configurationScans = state.history.filter(
+      (entry) => entry.assessment_type !== "runtime"
+    );
     if (scanFilter) {
-      scanFilter.innerHTML = `<option value="">LATEST SCAN</option>${state.history.map((entry) => `<option value="${escapeHtml(entry.scan_id)}">${escapeHtml(entry.filename)}</option>`).join("")}`;
-      if (state.currentScan && state.history.some((entry) => entry.scan_id === state.currentScan.scan_id)) {
+      scanFilter.innerHTML = `<option value="">LATEST CONFIGURATION SCAN</option>${configurationScans.map((entry) => `<option value="${escapeHtml(entry.scan_id)}">${escapeHtml(entry.filename)}</option>`).join("")}`;
+      if (state.currentScan && configurationScans.some((entry) => entry.scan_id === state.currentScan.scan_id)) {
         scanFilter.value = state.currentScan.scan_id;
       }
     }
     renderHistory();
     renderRecentActivity();
-    if (!state.currentScan && state.history.length) {
+    if (!state.currentScan && configurationScans.length) {
       try {
-        const latest = await fetchScanDetails(state.history[0].scan_id);
+        const latest = await fetchScanDetails(configurationScans[0].scan_id);
         state.currentScan = latest;
         state.historyDetails = [latest];
         renderHealth(latest.summary);
@@ -155,8 +177,8 @@ function renderSeverity(summary) {
   if (!total) {
     const emptyTitle = summary ? "No recorded findings" : "Analytics unavailable";
     const emptyMessage = summary
-      ? "No findings have been persisted for the available scans."
-      : "Connect to the backend to load severity data.";
+      ? "The latest configuration scan reported no findings."
+      : "Run a YAML or JSON scan to see its severity results.";
     $("#severityChart").innerHTML = `<div class="analytics-empty"><strong>${emptyTitle}</strong><span>${emptyMessage}</span></div>`;
     return;
   }
@@ -192,41 +214,138 @@ function renderSeverity(summary) {
   `).join("");
 }
 
+function latestConfigurationScan() {
+  return state.statistics?.recent_scans?.[0] || null;
+}
+
 function renderDashboardStatistics() {
   const statistics = state.statistics;
   const stats = statistics?.stats;
+  const latestScan = latestConfigurationScan();
+  const latestSummary = latestScan?.summary || null;
   if (!stats) {
-    ["metricTotalScans", "metricAverageScore", "metricTotalVulnerabilities", "metricNetworkFunctions"]
+    ["metricTotalScans", "metricLatestScore", "metricLatestFindings", "metricRulesChecked"]
       .forEach((id) => $("#" + id).textContent = "—");
-    ["scanCountMeta", "averageScoreMeta", "vulnerabilityMeta", "networkFunctionMeta"]
+    ["scanCountMeta", "latestScanMeta", "latestFindingsMeta", "latestRulesMeta"]
       .forEach((id) => $("#" + id).textContent = "Analytics unavailable");
     renderSeverity(null);
     renderScoreTrend();
     renderVulnerabilitiesByNF();
     renderFrequentRules();
     renderRecentActivity();
+    renderEnvironmentDashboardStatistics();
     if (state.currentPage === "analytics") renderAnalyticsPage();
     return;
   }
 
   $("#metricTotalScans").textContent = String(stats.total_scans ?? 0);
-  $("#metricAverageScore").textContent = stats.average_security_score === null
-    ? "—"
-    : Number(stats.average_security_score).toFixed(1);
-  $("#metricTotalVulnerabilities").textContent = String(stats.total_vulnerabilities ?? 0);
-  $("#metricNetworkFunctions").textContent = String(stats.network_functions_analyzed ?? 0);
-  $("#scanCountMeta").textContent = `${state.historyTotal || stats.total_scans} saved records`;
-  $("#averageScoreMeta").textContent = stats.average_security_score === null
-    ? "No scored scans"
-    : "Mean of available scan scores";
-  $("#vulnerabilityMeta").textContent = "Persisted finding records";
-  $("#networkFunctionMeta").textContent = "Distinct identified functions";
-  renderSeverity(statistics.severity_distribution);
+  $("#metricLatestScore").textContent = typeof latestSummary?.security_score === "number"
+    ? String(latestSummary.security_score)
+    : "—";
+  $("#metricLatestFindings").textContent = Number.isInteger(latestSummary?.total_findings)
+    ? String(latestSummary.total_findings)
+    : "—";
+  $("#metricRulesChecked").textContent = Number.isInteger(latestSummary?.total_rules_checked)
+    ? String(latestSummary.total_rules_checked)
+    : "—";
+  $("#scanCountMeta").textContent = `${stats.total_scans} saved configuration scans`;
+  $("#latestScanMeta").textContent = latestScan
+    ? latestScan.filename
+    : "No completed configuration scan";
+  $("#latestFindingsMeta").textContent = latestSummary
+    ? `${latestSummary.critical ?? 0} critical · ${latestSummary.high ?? 0} high · ${latestSummary.medium ?? 0} medium · ${latestSummary.low ?? 0} low`
+    : "No scan result";
+  $("#latestRulesMeta").textContent = latestSummary
+    ? `${latestSummary.network_function || latestScan.network_function || "Unknown NF"} · ${formatTime(latestScan.scanned_at)}`
+    : "No scan rule data";
+  renderSeverity(latestSummary);
   renderScoreTrend();
   renderVulnerabilitiesByNF();
   renderFrequentRules();
   renderRecentActivity();
+  renderEnvironmentDashboardStatistics();
   if (state.currentPage === "analytics") renderAnalyticsPage();
+}
+
+function renderRuntimeChart(containerId, entries, labelKey, unavailableMessage) {
+  const chart = $("#" + containerId);
+  if (!chart) return;
+  if (!entries) {
+    chart.innerHTML = `<div class="analytics-empty"><strong>Runtime data unavailable</strong><span>${escapeHtml(unavailableMessage)}</span></div>`;
+    return;
+  }
+  if (!entries.length) {
+    chart.innerHTML = `<div class="analytics-empty"><strong>No runtime data</strong><span>Saved runtime assessment records will appear here.</span></div>`;
+    return;
+  }
+  const maximum = Math.max(...entries.map((entry) => Number(entry.count) || 0), 1);
+  chart.innerHTML = entries.map((entry) => {
+    const count = Number(entry.count) || 0;
+    const width = count ? Math.max((count / maximum) * 100, 4) : 0;
+    return `<div class="runtime-chart-row" title="${escapeHtml(entry[labelKey])}: ${count}">
+      <strong>${escapeHtml(entry[labelKey])}</strong>
+      <div class="runtime-chart-track"><i style="width:${width}%"></i></div>
+      <span>${count}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderEnvironmentDashboardStatistics() {
+  const stats = state.environmentStatistics;
+  if (!stats) {
+    ["metricRunningNetworks", "metricRuntimeAssessments", "metricRuntimeFindings"]
+      .forEach((id) => { if ($("#" + id)) $("#" + id).textContent = "—"; });
+    ["runningNetworksMeta", "runtimeAssessmentsMeta", "runtimeFindingsMeta"]
+      .forEach((id) => { if ($("#" + id)) $("#" + id).textContent = "Environment analytics unavailable"; });
+    const message = state.environmentStatisticsError || "Waiting for environment status.";
+    renderRuntimeChart("networkStatusChart", null, "status", message);
+    renderRuntimeChart("runtimeSeverityChart", null, "severity", message);
+    renderRuntimeChart("runtimeNetworkChart", null, "network_name", message);
+    renderRuntimeChart("assessmentTypeChart", null, "label", message);
+    return;
+  }
+
+  $("#metricRunningNetworks").textContent = String(stats.running_networks);
+  $("#metricRuntimeAssessments").textContent = String(stats.runtime_assessments_completed);
+  $("#metricRuntimeFindings").textContent = String(stats.total_runtime_findings);
+  $("#runningNetworksMeta").textContent = "Live Docker Compose status";
+  $("#runtimeAssessmentsMeta").textContent = "Persisted assessments";
+  $("#runtimeFindingsMeta").textContent = "Security findings only";
+  renderRuntimeChart(
+    "networkStatusChart",
+    stats.network_status_distribution,
+    "status",
+    "The backend could not read current Docker status."
+  );
+  renderRuntimeChart(
+    "runtimeSeverityChart",
+    stats.runtime_findings_by_severity,
+    "severity",
+    "Runtime finding summaries could not be loaded."
+  );
+  renderRuntimeChart(
+    "runtimeNetworkChart",
+    stats.runtime_findings_by_network,
+    "network_name",
+    "Runtime finding summaries could not be loaded."
+  );
+  renderRuntimeChart(
+    "assessmentTypeChart",
+    stats.findings_by_type,
+    "label",
+    "Assessment totals could not be loaded."
+  );
+}
+
+async function loadEnvironmentDashboardStatistics() {
+  try {
+    state.environmentStatistics = await fetchEnvironmentStatistics();
+    state.environmentStatisticsError = null;
+  } catch (error) {
+    state.environmentStatistics = null;
+    state.environmentStatisticsError = error.message;
+  }
+  renderEnvironmentDashboardStatistics();
 }
 
 async function loadStatistics() {
@@ -621,19 +740,20 @@ function renderHistory() {
     </div>
     ${state.history.length ? `
       <div class="history-list-table">
-        <div class="history-list-row header"><strong>Filename</strong><span>NF</span><span>Date</span><span>Findings</span><span>Score</span><span>Status</span><span>Actions</span></div>
+        <div class="history-list-row header"><strong>Assessment</strong><span>Type</span><span>Network</span><span>Date</span><span>Findings</span><span>Score</span><span>Status</span><span>Actions</span></div>
         ${state.history.map((entry) => `
           <div class="history-list-row">
             <strong title="${escapeHtml(entry.filename)}">${escapeHtml(entry.filename)}</strong>
+            <span>${entry.assessment_type === "runtime" ? "Runtime" : "Configuration"}</span>
             <span>${escapeHtml(entry.network_function || "—")}</span>
             <span>${formatTime(entry.scanned_at)}</span>
             <span>${entry.total_findings ?? 0} · C${entry.critical_count || 0}/H${entry.high_count || 0}/M${entry.medium_count || 0}/L${entry.low_count || 0}</span>
             <span>${entry.security_score ?? "—"}</span>
             <span>${escapeHtml(entry.result_status || entry.status || "UNKNOWN")}</span>
-            <span class="history-row-actions">
-              <button data-history-open="${escapeHtml(entry.scan_id)}">Open</button>
-              <button data-history-compare="${escapeHtml(entry.scan_id)}">Compare</button>
-            </span>
+            <span class="history-row-actions">${entry.assessment_type === "runtime"
+              ? `<button data-history-runtime="${escapeHtml(entry.assessment_id || entry.scan_id)}" data-history-network="${escapeHtml(entry.network_id || "alpha")}">View</button>`
+              : `<button data-history-open="${escapeHtml(entry.scan_id)}">Open</button><button data-history-compare="${escapeHtml(entry.scan_id)}">Compare</button>`
+            }</span>
           </div>
         `).join("")}
       </div>
@@ -674,6 +794,12 @@ function renderHistory() {
   });
   $$("[data-history-open]").forEach((button) =>
     button.addEventListener("click", () => loadScan(button.dataset.historyOpen))
+  );
+  $$("[data-history-runtime]").forEach((button) =>
+    button.addEventListener("click", () => loadRuntimeAssessment(
+      button.dataset.historyRuntime,
+      button.dataset.historyNetwork
+    ))
   );
   $$("[data-history-compare]").forEach((button) =>
     button.addEventListener("click", () => {
@@ -1377,7 +1503,11 @@ async function startScan() {
     $("#scanState").textContent = `Complete · ${scan.summary.total_findings} findings`;
     renderHealth(scan.summary);
     $("#scanPanel").classList.remove("open");
-    await Promise.all([loadHistory(), loadStatistics()]);
+    await Promise.all([
+      loadHistory(),
+      loadStatistics(),
+      loadEnvironmentDashboardStatistics(),
+    ]);
     try {
       const persistedScan = await fetchScanDetails(scan.scan_id);
       state.currentScan = persistedScan;
@@ -1542,6 +1672,231 @@ function renderAnalyticsPage() {
   $("#analyticsSeverity").innerHTML = $("#severityChart").innerHTML;
 }
 
+function renderRuntimeAssessment(assessment) {
+  const findings = assessment?.findings || [];
+  const observations = assessment?.observations || [];
+  const summary = assessment?.summary || {};
+  const networkName = assessment?.network_name || "Test network";
+  const findingsMarkup = findings.length
+    ? findings.map((item) => `
+      <article class="runtime-record finding">
+        <div class="runtime-record-header">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="severity-pill ${escapeHtml(item.severity).toLowerCase()}">${escapeHtml(item.severity)}</span>
+        </div>
+        <small>${escapeHtml(item.rule_id)} · ${escapeHtml(item.component || networkName)}</small>
+        <p>${escapeHtml(item.description)}</p>
+        <p><strong>Evidence:</strong> ${escapeHtml(item.evidence)}</p>
+        <p><strong>Recommended action:</strong> ${escapeHtml(item.remediation)}</p>
+      </article>
+    `).join("")
+    : `<div class="analytics-empty"><strong>No runtime security findings</strong><span>This ${escapeHtml(networkName)} assessment did not detect unavailable services, published host ports, or a non-internal Docker network.</span></div>`;
+  const observationsMarkup = observations.length
+    ? observations.map((item) => `
+      <article class="runtime-record observation">
+        <div class="runtime-record-header"><strong>${escapeHtml(item.title)}</strong><span>INFORMATIONAL</span></div>
+        <small>${escapeHtml(item.rule_id)} · ${escapeHtml(item.component || networkName)}</small>
+        <p>${escapeHtml(item.description)}</p>
+        <p><strong>Evidence:</strong> ${escapeHtml(item.evidence)}</p>
+      </article>
+    `).join("")
+    : `<div class="analytics-empty"><strong>No interface observations</strong><span>Interfaces are only observed when a service healthcheck can run.</span></div>`;
+
+  return `
+    <div class="runtime-assessment-summary">
+      <span>${escapeHtml(assessment.assessment_status || "COMPLETED")}</span>
+      <span>${formatTime(assessment.assessed_at)}</span>
+      <span>${summary.services_healthy ?? 0}/${summary.services_configured ?? 0} services healthy</span>
+      <span>${summary.total_findings ?? 0} findings · ${summary.total_observations ?? 0} observations</span>
+    </div>
+    <div class="runtime-results-grid">
+      <section><h3>Security findings</h3>${findingsMarkup}</section>
+      <section><h3>Informational observations</h3>${observationsMarkup}</section>
+    </div>
+  `;
+}
+
+function renderEnvironmentCard(environment, assessment, networkId, errorMessage = "") {
+  const networkName = environment?.name || `Network ${networkId.toUpperCase()}`;
+  if (!environment) {
+    return `<section class="environment-card"><div class="analytics-empty"><strong>${escapeHtml(networkName)} status unavailable</strong><span>${escapeHtml(errorMessage || "The backend has not returned environment status.")}</span></div></section>`;
+  }
+  const serviceRows = environment.services.map((service) => `
+    <div class="environment-service-row">
+      <strong>${escapeHtml(service.name.toUpperCase())}</strong>
+      <span>${escapeHtml(service.kind.replace("_", " "))}</span>
+      <span class="environment-state ${escapeHtml(service.state)}">${escapeHtml(service.state.toUpperCase())}</span>
+      <span class="environment-state ${escapeHtml(service.health)}">${escapeHtml(service.health.toUpperCase())}</span>
+      <span>${service.published_ports?.length
+        ? escapeHtml(service.published_ports.map((port) => `${port.host}:${port.host_port}`).join(", "))
+        : "No host ports published"
+      }</span>
+    </div>
+  `).join("");
+  const latestSummary = assessment?.summary;
+
+  return `
+    <section class="environment-card">
+      <div class="environment-heading">
+        <div>
+          <span class="environment-kicker">MANAGED 5G CORE LAB</span>
+          <h3>${escapeHtml(environment.name)}</h3>
+          <p>${escapeHtml(environment.description)}</p>
+        </div>
+        <span class="environment-state ${escapeHtml(environment.status)}">${escapeHtml(environment.status.replace("_", " ").toUpperCase())}</span>
+      </div>
+      <div class="environment-metrics">
+        <div><span>Network Functions</span><strong>${environment.configured_network_functions}</strong></div>
+        <div><span>Healthy Services</span><strong>${environment.healthy_services} / ${environment.service_count}</strong></div>
+        <div><span>Last Assessment</span><strong>${assessment ? formatTime(assessment.assessed_at) : "Not assessed"}</strong></div>
+        <div><span>Latest Findings</span><strong>${latestSummary?.total_findings ?? "—"}</strong></div>
+      </div>
+      <div class="environment-actions">
+        <button class="primary-action" data-environment-id="${networkId}" data-environment-action="start" ${state.environmentBusy || environment.status === "running" ? "disabled" : ""}>START NETWORK</button>
+        <button class="secondary-action" data-environment-id="${networkId}" data-environment-action="stop" ${state.environmentBusy || !environment.is_running ? "disabled" : ""}>STOP NETWORK</button>
+        <button class="primary-action" data-environment-id="${networkId}" data-environment-action="scan" ${state.environmentBusy ? "disabled" : ""}>SCAN NETWORK</button>
+        <button class="secondary-action" data-environment-id="${networkId}" data-environment-action="view-results" ${!assessment ? "disabled" : ""}>VIEW RESULTS</button>
+      </div>
+      ${errorMessage ? `<p class="environment-error">${escapeHtml(errorMessage)}</p>` : ""}
+    </section>
+    <section class="environment-card">
+      <div class="environment-section-heading"><h3>Service health</h3><span>${environment.healthy_services} of ${environment.service_count} healthy</span></div>
+      <div class="environment-service-list">
+        <div class="environment-service-row header"><strong>Service</strong><span>Type</span><span>State</span><span>Health</span><span>Host exposure</span></div>
+        ${serviceRows}
+      </div>
+      <p class="muted-note">SBI healthchecks perform TLS certificate and client-certificate verification. The UPF check confirms its process only; no UE connectivity is implied.</p>
+    </section>
+    <section class="environment-card" id="runtimeAssessmentResults-${networkId}">
+      <div class="environment-section-heading"><h3>Latest runtime assessment</h3><span>${assessment ? escapeHtml(assessment.assessment_id) : "No saved assessment"}</span></div>
+      ${assessment ? renderRuntimeAssessment(assessment) : `<div class="analytics-empty"><strong>No runtime assessment yet</strong><span>Use Scan Network to check service availability, health, host-port exposure, and observed SBI TLS health.</span></div>`}
+    </section>
+  `;
+}
+
+function renderNetworkAlphaPage() {
+  const content = $("#utilityContent");
+  content.innerHTML = [
+    renderEnvironmentCard(
+      state.environment,
+      state.runtimeAssessment,
+      "alpha",
+      state.environmentError
+    ),
+    renderEnvironmentCard(
+      state.betaEnvironment,
+      state.betaRuntimeAssessment,
+      "beta",
+      state.betaEnvironmentError
+    ),
+  ].join("");
+  content.querySelectorAll("[data-environment-action]").forEach((button) => {
+    button.addEventListener("click", () => handleEnvironmentAction(
+      button.dataset.environmentAction,
+      button.dataset.environmentId
+    ));
+  });
+}
+
+async function loadNetworkAlphaPage({ preserveAssessment = false } = {}) {
+  $("#utilityContent").innerHTML = `<div class="analytics-empty"><strong>Loading test environments</strong><span>Reading live service status from the backend.</span></div>`;
+  const [alphaResult, betaResult] = await Promise.allSettled([
+    fetchNetworkAlpha(),
+    fetchNetworkBeta(),
+  ]);
+  if (alphaResult.status === "fulfilled") {
+    state.environment = alphaResult.value.environment;
+    state.environmentError = null;
+    if (!preserveAssessment) {
+      state.runtimeAssessment = alphaResult.value.last_runtime_assessment;
+    }
+  } else {
+    state.environment = null;
+    state.environmentError = alphaResult.reason.message;
+  }
+  if (betaResult.status === "fulfilled") {
+    state.betaEnvironment = betaResult.value.environment;
+    state.betaEnvironmentError = null;
+    if (!preserveAssessment) {
+      state.betaRuntimeAssessment = betaResult.value.last_runtime_assessment;
+    }
+  } else {
+    state.betaEnvironment = null;
+    state.betaEnvironmentError = betaResult.reason.message;
+  }
+  renderNetworkAlphaPage();
+}
+
+async function handleEnvironmentAction(action, networkId) {
+  if (state.environmentBusy) return;
+  const isBeta = networkId === "beta";
+  const networkName = isBeta ? "Network Beta" : "Network Alpha";
+  if (action === "view-results") {
+    $(`#runtimeAssessmentResults-${networkId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  state.environmentBusy = true;
+  renderNetworkAlphaPage();
+  try {
+    if (action === "start") {
+      const environment = isBeta
+        ? await startNetworkBeta()
+        : await startNetworkAlpha();
+      if (isBeta) state.betaEnvironment = environment;
+      else state.environment = environment;
+      toast(`${networkName} started.`);
+      await loadNetworkAlphaPage({ preserveAssessment: true });
+    } else if (action === "stop") {
+      const environment = isBeta
+        ? await stopNetworkBeta()
+        : await stopNetworkAlpha();
+      if (isBeta) state.betaEnvironment = environment;
+      else state.environment = environment;
+      toast(`${networkName} stopped; persistent data was preserved.`);
+      await loadNetworkAlphaPage({ preserveAssessment: true });
+    } else if (action === "scan") {
+      const assessment = isBeta
+        ? await assessNetworkBeta()
+        : await assessNetworkAlpha();
+      if (isBeta) {
+        state.betaRuntimeAssessment = assessment;
+        state.betaEnvironment = assessment.environment_status;
+      } else {
+        state.runtimeAssessment = assessment;
+        state.environment = assessment.environment_status;
+      }
+      toast(`${networkName} assessment completed: ${assessment.summary.total_findings} findings.`);
+      await loadEnvironmentDashboardStatistics();
+    }
+    await loadHistory();
+  } catch (error) {
+    toast(error.message);
+    await loadNetworkAlphaPage({ preserveAssessment: true });
+  } finally {
+    state.environmentBusy = false;
+    renderNetworkAlphaPage();
+  }
+}
+
+async function loadRuntimeAssessment(assessmentId, networkId = "alpha") {
+  try {
+    const assessment = await fetchRuntimeAssessment(assessmentId, networkId);
+    if (networkId === "beta") state.betaRuntimeAssessment = assessment;
+    else state.runtimeAssessment = assessment;
+    state.currentPage = "environments";
+    $$(".nav-item").forEach((item) => item.classList.toggle(
+      "active",
+      item.dataset.page === "environments"
+    ));
+    showPage("utilityPage");
+    $("#utilityTitle").textContent = "5G TEST ENVIRONMENTS";
+    $("#pageTitle").textContent = "5G TEST ENVIRONMENTS";
+    await loadNetworkAlphaPage({ preserveAssessment: true });
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
 function showUtilityPage(page) {
   state.currentPage = page;
   showPage("utilityPage");
@@ -1554,6 +1909,7 @@ function showUtilityPage(page) {
     samples: "SAMPLE CONFIGURATIONS",
     reports: "REPORTS",
     analytics: "RISK ANALYTICS",
+    environments: "5G TEST ENVIRONMENTS",
     settings: "SETTINGS"
   };
   $("#utilityTitle").textContent = titles[page] || "SECURITY";
@@ -1579,6 +1935,8 @@ function showUtilityPage(page) {
     renderRemediationInto($("#remediationListUtility"), state.currentScan);
   } else if (page === "analytics") {
     renderAnalyticsPage();
+  } else if (page === "environments") {
+    loadNetworkAlphaPage();
   } else if (page === "settings") {
     $("#utilityContent").innerHTML = `
       <section class="settings-section" aria-labelledby="settingsAppearanceTitle">
@@ -1640,7 +1998,7 @@ function bindEvents() {
   $("#severityView").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
     state.severityView = button.dataset.severityView;
     $$("#severityView button").forEach((item) => item.classList.toggle("active", item === button));
-    renderSeverity(state.statistics?.severity_distribution || null);
+    renderSeverity(latestConfigurationScan()?.summary || null);
     if (state.currentPage === "analytics") renderAnalyticsPage();
   }));
   $("#zoomIn").addEventListener("click", () => { state.zoom = Math.min(1.8, state.zoom + .15); setCamera(); });
@@ -1680,7 +2038,7 @@ function bindEvents() {
       state.currentPage = "overview";
       $("#scanPanel").classList.add("open");
       showPage("overviewPage");
-    } else if (["rules", "findings", "remediation", "history", "comparison", "samples", "reports", "analytics", "settings"].includes(page)) {
+    } else if (["rules", "findings", "remediation", "history", "comparison", "samples", "reports", "analytics", "environments", "settings"].includes(page)) {
       showUtilityPage(page);
     } else {
       state.currentPage = "overview";
@@ -1691,10 +2049,12 @@ function bindEvents() {
   $("#scanFilter").addEventListener("change", (event) => {
     if (event.target.value) {
       loadScan(event.target.value);
-    } else if (state.history.length) {
-      loadScan(state.history[0].scan_id);
     } else {
-      renderHealth(null);
+      const latestConfiguration = state.history.find(
+        (entry) => entry.assessment_type !== "runtime"
+      );
+      if (latestConfiguration) loadScan(latestConfiguration.scan_id);
+      else renderHealth(null);
     }
   });
   window.addEventListener("resize", setCamera);
@@ -1712,6 +2072,7 @@ async function init() {
     checkBackend(),
     loadHistory(),
     loadStatistics(),
+    loadEnvironmentDashboardStatistics(),
     loadRuleCatalog(),
     loadSampleLibrary(),
   ]);

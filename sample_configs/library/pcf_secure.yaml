@@ -1,0 +1,8 @@
+pcf:
+  sbi:
+    scheme: https
+    addr: 10.10.0.7
+    port: 7777
+  tls:
+    enabled: true
+    min_version: "1.2"

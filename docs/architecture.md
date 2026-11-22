@@ -13,7 +13,7 @@ The architecture is built for strict separation of concerns, allowing four devel
 ```
 +-------------------------------------------------------------------------+
 |                           FRONTEND LAYER                                |
-|   (React.js + Vite + Tailwind CSS + Recharts + Central API Client)      |
+| (Vanilla JavaScript + Vite + CSS + Central API Client)                  |
 +------------------------------------+------------------------------------+
                                      |  HTTP REST (JSON / Multipart)
                                      v
@@ -26,19 +26,15 @@ The architecture is built for strict separation of concerns, allowing four devel
 +------------------------------------+------------------------------------+
 |                      SCANNER INGESTION & PIPELINE                       |
 |                                                                         |
-|   [Upload Endpoint]       [Future: Open5GS]      [Future: free5GC]      |
-|   (routes/scanner.py)    (integrations/)        (integrations/)         |
-|            \                     |                     /                |
-|             +--------------------+--------------------+                 |
-|                                  |                                      |
-|                                  v                                      |
-|                       [parser.py: YAML / JSON]                          |
-|                                  |                                      |
-|                                  v                                      |
-|                        [analyzer.py (Orchestrator)]                     |
-|                               /     \                                   |
-|                              v       v                                  |
-|                   [rules.py Engine]  [risk.py Classification]           |
+| [Upload: routes/scanner.py]   [Environment: routes/environments.py]     |
+|             |                              |                            |
+|             v                              v                            |
+| [parser.py -> analyzer.py]    [Open5GS Alpha Compose manager]            |
+|             |                 [runtime_assessment.py]                    |
+|             |                              |                            |
+|             +--------------+---------------+                            |
+|                            v                                            |
+|             [SQLite: configuration and runtime records]                 |
 |                                                                         |
 +------------------------------------+------------------------------------+
                                      |
@@ -56,25 +52,28 @@ The architecture is built for strict separation of concerns, allowing four devel
 | Module / File | Primary Responsibility | Developer Ownership |
 | :--- | :--- | :--- |
 | `backend/app/main.py` | FastAPI app lifecycle, middleware, route aggregation, `/api/health`. | Lead / Integration Dev |
-| `backend/app/routes/scanner.py` | API endpoints (`/upload`, `/history`), input validation, HTTP error codes. | Backend Dev A |
+| `backend/app/routes/scanner.py` | Upload, paginated history, scan details, analytics, rule catalog, and remediation APIs. | Backend Dev A |
+| `backend/app/routes/environments.py` | Network Alpha status, fixed lifecycle operations, runtime assessment, and runtime result APIs. | Lead / Integration Dev |
 | `backend/app/scanner/parser.py` | Safe deserialization of YAML & JSON into standard Python dictionaries, NF heuristics. | Backend Dev A |
 | `backend/app/scanner/analyzer.py` | Orchestrates analysis: matches applicable rules, calculates score, builds summary. | Backend Dev B |
 | `backend/app/scanner/rules.py` | Standalone rule definitions (target NF, category, logic, remediation guidelines). | Backend Dev B |
 | `backend/app/scanner/risk.py` | Severity enum (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), weighting factors, visual badges. | Backend Dev B |
-| `backend/app/database/db.py` | SQLite connection, table schema migrations, scan history logging. | Backend Dev A |
-| `backend/app/integrations/` | Abstract adapters reserved for Phase 2 Open5GS and free5GC imports. | Future Scope |
-| `frontend/src/` | Cybersecurity dashboard, file uploader, findings table, charts, API client. | Frontend Devs (C & D) |
+| `backend/app/database/db.py` | SQLite schema migration, configuration scan history, separate runtime assessments/records, and merged history. | Backend Dev A |
+| `backend/app/integrations/open5gs_alpha.py` | Fixed Docker Compose operations for the local Network Alpha project; API callers cannot submit arbitrary commands. | Lead / Integration Dev |
+| `backend/app/scanner/runtime_assessment.py` | Assesses expected service state/health, published ports, network isolation and SBI TLS healthcheck results; keeps runtime findings separate from configuration findings. | Lead / Integration Dev |
+| `frontend/index.html`, `frontend/src/app.js` | Active vanilla-JavaScript dashboard, sample library, analytics, findings, history, comparison, and reports. | Frontend Devs (C & D) |
+| `frontend/src/services/api.js` | Central client for backend health, upload, history, analytics, details, rules, and remediation. | Frontend Devs (C & D) |
+| `frontend/public/sample_configs/` | Manifest and downloadable sample configurations validated by the scanner tests. | Frontend Devs (C & D) |
 
 ---
 
-## 4. Future Open5GS and free5GC Integration Strategy
+## 4. Network Alpha Runtime Integration and Future Core Support
 
-A primary long-term capability of SUSignal is inspecting configurations directly from live or lab 5G Core implementations (Open5GS and free5GC).
+SUSignal manages the existing isolated Network Alpha Compose environment through fixed status/start/stop operations. The browser does not connect to Docker and cannot submit shell commands. On Windows, the manager invokes the configured WSL distribution when the Docker CLI is unavailable natively.
 
-### Key Architectural Guidelines:
-1. **Zero Runtime Dependency:** The core scanner must never import Open5GS or free5GC binaries or require a live 5G Core installation to operate.
-2. **Adapter Pattern:** The `backend/app/integrations/` directory provides `Base5GCoreAdapter`. Future adapters (`Open5GSAdapter`, `Free5GCAdapter`) will parse vendor-specific configuration trees and normalize them into standard dictionaries.
-3. **Unified Analysis Pipeline:** Regardless of whether configuration originated from a manual web upload, an Open5GS YAML file, or a free5GC cluster, the parsed dictionary is evaluated by the exact same `analyzer.analyze_configuration()` engine.
+Runtime checks cover the configured service set and health states, published host ports, Docker network isolation, and the result of the environment's SBI TLS health checks. Findings are persisted in runtime-specific tables; informational observations are not counted as security findings. These checks do not inspect NAS algorithm negotiation or assert UE/service functionality.
+
+The uploaded YAML/JSON pipeline remains independent. Future Open5GS or free5GC configuration adapters may normalize source-specific configuration, but they must not be coupled to runtime assessment or require a live core for ordinary configuration uploads.
 
 ---
 
@@ -87,7 +86,6 @@ A primary long-term capability of SUSignal is inspecting configurations directly
    - database/db.py                       - scanner/risk.py
    
    Developer 3 (Frontend Core & UI) <->   Developer 4 (Data Viz & UX)
-   - App.jsx / layout                     - charts & metrics (Recharts)
-   - components/UploadSection.jsx         - components/ScanResults.jsx
-   - services/api.js                      - sample config presets
+   - index.html / app.js                  - charts & metrics
+   - services/api.js                      - sample config library
 ```

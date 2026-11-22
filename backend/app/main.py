@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 
 from .database.db import init_db
+from .routes.environments import router as environments_router
 from .routes.scanner import router as scanner_router
 
 
@@ -31,7 +32,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "http://10.92.247.93:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -40,6 +42,7 @@ app.add_middleware(
 
 # Register routes
 app.include_router(scanner_router)
+app.include_router(environments_router)
 
 
 @app.get("/api/health", tags=["Health Check"])
@@ -55,7 +58,8 @@ async def health_check() -> Dict[str, Any]:
         "modules": {
             "scanner": "online",
             "database": "online",
-            "integrations": "ready_for_phase2"
+            "integrations": "configured",
+            "runtime_environments": "configured"
         }
     }
 

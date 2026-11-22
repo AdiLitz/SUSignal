@@ -178,3 +178,123 @@ export async function updateRemediationStatus(scanId, ruleId, targetNF, status) 
   }
   return data.remediation;
 }
+
+function isEnvironment(value, expectedId) {
+  return value &&
+    value.id === expectedId &&
+    typeof value.name === 'string' &&
+    typeof value.description === 'string' &&
+    typeof value.status === 'string' &&
+    Number.isInteger(value.configured_network_functions) &&
+    Number.isInteger(value.healthy_services) &&
+    Array.isArray(value.services);
+}
+
+async function fetchNetworkEnvironment(networkId) {
+  const data = await request(`/api/environments/${networkId}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (data.status !== 'success' || !isEnvironment(data.environment, networkId)) {
+    throw new Error('The backend returned an unexpected environment response.');
+  }
+  return data;
+}
+
+export function fetchNetworkAlpha() {
+  return fetchNetworkEnvironment('alpha');
+}
+
+export function fetchNetworkBeta() {
+  return fetchNetworkEnvironment('beta');
+}
+
+export async function fetchEnvironmentStatistics() {
+  const data = await request('/api/environments/statistics', {
+    headers: { Accept: 'application/json' },
+  });
+  if (
+    data.status !== 'success' ||
+    !Number.isInteger(data.total_test_networks) ||
+    !Number.isInteger(data.running_networks) ||
+    !Number.isInteger(data.runtime_assessments_completed) ||
+    !Number.isInteger(data.total_runtime_findings) ||
+    !Array.isArray(data.network_status_distribution) ||
+    !Array.isArray(data.runtime_findings_by_severity) ||
+    !Array.isArray(data.runtime_findings_by_network) ||
+    !Array.isArray(data.findings_by_type)
+  ) {
+    throw new Error('The backend returned unexpected environment statistics.');
+  }
+  return data;
+}
+
+async function environmentAction(networkId, action) {
+  const data = await request(`/api/environments/${networkId}/${action}`, {
+    method: 'POST',
+  });
+  if (data.status !== 'success' || !isEnvironment(data.environment, networkId)) {
+    throw new Error('The backend returned an unexpected environment operation response.');
+  }
+  return data.environment;
+}
+
+export function startNetworkAlpha() {
+  return environmentAction('alpha', 'start');
+}
+
+export function stopNetworkAlpha() {
+  return environmentAction('alpha', 'stop');
+}
+
+export function startNetworkBeta() {
+  return environmentAction('beta', 'start');
+}
+
+export function stopNetworkBeta() {
+  return environmentAction('beta', 'stop');
+}
+
+async function assessNetwork(networkId) {
+  const data = await request(`/api/environments/${networkId}/assessments`, {
+    method: 'POST',
+  });
+  if (
+    data.status !== 'success' ||
+    data.assessment_type !== 'runtime' ||
+    typeof data.assessment_id !== 'string' ||
+    data.network_id !== networkId ||
+    !data.summary ||
+    !Array.isArray(data.findings) ||
+    !Array.isArray(data.observations)
+  ) {
+    throw new Error('The backend returned an unexpected runtime assessment response.');
+  }
+  return data;
+}
+
+export function assessNetworkAlpha() {
+  return assessNetwork('alpha');
+}
+
+export function assessNetworkBeta() {
+  return assessNetwork('beta');
+}
+
+export async function fetchRuntimeAssessment(assessmentId, networkId = 'alpha') {
+  const data = await request(
+    `/api/environments/${networkId}/assessments/${encodeURIComponent(assessmentId)}`,
+    { headers: { Accept: 'application/json' } }
+  );
+  if (
+    data.status !== 'success' ||
+    data.assessment_id !== assessmentId ||
+    data.assessment_type !== 'runtime' ||
+    data.network_id !== networkId ||
+    !data.summary ||
+    !Array.isArray(data.findings) ||
+    !Array.isArray(data.observations)
+  ) {
+    throw new Error('The backend returned an unexpected saved runtime assessment.');
+  }
+  return data;
+}

@@ -33,7 +33,8 @@ Verifies backend server readiness and sub-module status.
   "modules": {
     "scanner": "online",
     "database": "online",
-    "integrations": "ready_for_phase2"
+    "integrations": "configured",
+    "runtime_environments": "configured"
   }
 }
 ```
@@ -55,6 +56,8 @@ Uploads a 5G Network Function configuration file (YAML or JSON), executes securi
 {
   "status": "success",
   "scan_id": "8b5128cf-2401-4be5-a134-8c8fb5028405",
+  "assessment_id": "8b5128cf-2401-4be5-a134-8c8fb5028405",
+  "assessment_type": "configuration",
   "filename": "amf_vulnerable.yaml",
   "file_type": "yaml",
   "summary": {
@@ -65,7 +68,7 @@ Uploads a 5G Network Function configuration file (YAML or JSON), executes securi
     "high": 1,
     "medium": 1,
     "low": 0,
-    "security_score": 0,
+    "security_score": 58,
     "status": "VULNERABILITIES_FOUND"
   },
   "findings": [
@@ -125,9 +128,10 @@ Uploads a 5G Network Function configuration file (YAML or JSON), executes securi
 
 ### 2.3 Scan History
 
-Fetches recently recorded scans from the SQLite database.
+Fetches paginated scan summaries from SQLite. Filtering and sorting are performed against persisted records.
 
 - **Route:** `GET /api/scan/history`
+- **Query parameters:** `limit` (1–500, default 100), `offset` (default 0), `search` (filename), `network_function`, `severity` (`CRITICAL`, `HIGH`, `MEDIUM`, or `LOW`), and `sort` (`date-asc`, `date-desc`, `score-asc`, or `score-desc`).
 - **Response Code:** `200 OK`
 
 #### Response Body:
@@ -135,19 +139,82 @@ Fetches recently recorded scans from the SQLite database.
 {
   "status": "success",
   "count": 1,
+  "total": 1,
+  "limit": 100,
+  "offset": 0,
   "scans": [
     {
       "scan_id": "8b5128cf-2401-4be5-a134-8c8fb5028405",
       "filename": "amf_vulnerable.yaml",
       "file_type": "yaml",
       "scanned_at": "2026-11-21T04:38:00.000Z",
+      "network_function": "AMF",
+      "security_score": 58,
       "critical_count": 1,
       "high_count": 1,
       "medium_count": 1,
       "low_count": 0,
       "total_findings": 3,
-      "status": "COMPLETED"
+      "status": "COMPLETED",
+      "result_status": "VULNERABILITIES_FOUND"
     }
   ]
 }
 ```
+
+### 2.4 Saved Scan Details
+
+Returns the stored summary and finding records for a scan.
+
+- **Route:** `GET /api/scan/history/{scan_id}`
+- **Response:** Includes top-level `status: "success"`, scan metadata, `summary`, `findings`, and `findings_available`. The persisted completion state is returned as `scan_status` (for example, `COMPLETED`). If legacy finding details are incomplete, `findings_available` is false.
+
+### 2.5 Dashboard Statistics
+
+Calculates aggregate statistics and charts from persisted scans and findings.
+
+- **Route:** `GET /api/scan/statistics`
+- **Response:** Includes total scans, average security score (null when no scores exist), total vulnerabilities, distinct recognized Network Functions, severity totals, findings by NF, score trend (latest 100 scored scans), most frequent rules, and recent scans.
+
+### 2.6 Implemented Rule Catalog
+
+Returns only rules registered in the generic scanner and Open5GS scanner.
+
+- **Route:** `GET /api/scan/rules`
+- **Response:** Rule metadata includes ID, title, target NF, severity, category, description, remediation, and implementation scope (`Generic` or `Open5GS-specific`).
+
+### 2.7 Remediation Status
+
+Updates a finding status for one scan. Status values are `PENDING`, `FIXED`, and `ACCEPTED_RISK`.
+
+- **Route:** `PUT /api/scan/history/{scan_id}/findings/{rule_id}/status`
+- **Request body:**
+```json
+{
+  "target_nf": "AMF",
+  "status": "FIXED"
+}
+```
+- **Persistence:** Statuses are stored per scan, rule ID, and target NF. A scan comparison does not automatically update these statuses.
+
+### 2.8 Network Alpha status and lifecycle
+
+These routes operate only on the configured Network Alpha Compose project. They do not accept shell commands, service names, or Compose paths from API callers.
+
+- `GET /api/environments` returns the managed environment list.
+- `GET /api/environments/alpha` returns live service state, health, host-published ports, network isolation status, and the latest assessment summary.
+- `POST /api/environments/alpha/start` starts the configured project.
+- `POST /api/environments/alpha/stop` stops the configured project without deleting its volumes.
+- `GET /api/environments/statistics` returns current network status plus persisted runtime assessment/finding aggregates and configuration-vs-runtime totals.
+
+Lifecycle responses contain `status: "success"` and an `environment` object with the environment identity, status, configured Network Function count, running/healthy service counts, per-service states, published ports, and internal network status. Docker/WSL failures return HTTP `503` with a descriptive `detail`.
+
+### 2.9 Network Alpha runtime assessments
+
+- `POST /api/environments/alpha/assessments` runs and persists an assessment.
+- `GET /api/environments/alpha/assessments?limit=20` lists saved assessment summaries.
+- `GET /api/environments/alpha/assessments/{assessment_id}` returns one assessment, including `summary`, `environment_status`, `findings`, and `observations`.
+
+Runtime findings assess expected service availability and configured healthchecks (including supporting services), host-published service ports, and whether Docker reports the core network as internal. TLS observations are based on the configured SBI healthcheck's HTTPS/mTLS result. Informational observations are separate from security findings and do not increase finding totals. This is not a general port scanner and does not infer NAS algorithm negotiation.
+
+Runtime assessment persistence uses separate SQLite tables and is tagged `assessment_type: "runtime"` in merged history. Existing configuration scans remain tagged `assessment_type: "configuration"` and retain their existing upload and result contracts.

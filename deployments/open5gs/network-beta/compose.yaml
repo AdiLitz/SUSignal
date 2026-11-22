@@ -1,0 +1,43 @@
+name: susignal-network-beta
+
+services:
+  certificate-init:
+    image: susignal/open5gs:2.8.0
+    command: ["/usr/local/bin/generate-certs"]
+    restart: "no"
+    mem_limit: 128m
+    volumes:
+      - beta-ca-private:/run/susignal-alpha-ca
+      - beta-nrf-certs:/run/susignal-alpha-nrf
+    networks:
+      - core
+
+  nrf:
+    image: susignal/open5gs:2.8.0
+    command: ["open5gs-nrfd", "-c", "/etc/open5gs/nrf.yaml"]
+    restart: "no"
+    mem_limit: 192m
+    depends_on:
+      certificate-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:17777:7777"
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x open5gs-nrfd >/dev/null && openssl s_client -connect nrf:7777 -servername nrf -verify_hostname nrf -CAfile /etc/open5gs/tls/ca.crt -cert /etc/open5gs/tls/server.crt -key /etc/open5gs/tls/server.key -verify_return_error -brief </dev/null >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - ../network-alpha/configs/nrf.yaml:/etc/open5gs/nrf.yaml:ro
+      - beta-nrf-certs:/etc/open5gs/tls:ro
+    networks:
+      - core
+
+networks:
+  core:
+    internal: true
+
+volumes:
+  beta-ca-private:
+  beta-nrf-certs:
